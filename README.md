@@ -1,6 +1,6 @@
 # Livox ROS Driver 2
 
-Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR products produced by Livox, applicable for ROS (noetic recommended) and ROS2 (foxy or humble recommended).
+Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR products produced by Livox, applicable for ROS2 (theoretically Foxy but tested for Humble).
 
   **Note :**
 
@@ -10,8 +10,6 @@ Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR pr
 
 ### 1.1 OS requirements
 
-  * Ubuntu 18.04 for ROS Melodic;
-  * Ubuntu 20.04 for ROS Noetic and ROS2 Foxy;
   * Ubuntu 22.04 for ROS2 Humble;
 
   **Tips:**
@@ -20,28 +18,19 @@ Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR pr
 
   How to install colcon: [Colcon installation instructions](https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html)
 
-### 1.2 Install ROS & ROS2
-
-For ROS Melodic installation, please refer to:
-[ROS Melodic installation instructions](https://wiki.ros.org/melodic/Installation)
-
-For ROS Noetic installation, please refer to:
-[ROS Noetic installation instructions](https://wiki.ros.org/noetic/Installation)
-
-For ROS2 Foxy installation, please refer to:
-[ROS Foxy installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html)
+### 1.2 Install ROS2
 
 For ROS2 Humble installation, please refer to:
 [ROS Humble installation instructions](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html)
 
-Desktop-Full installation is recommend.
+Desktop-Full installation is recommended.
 
 ## 2. Build & Run Livox ROS Driver 2
 
-### 2.1 Clone Livox ROS Driver 2 source code:
+### 2.1 Clone Livox ROS Driver 2 source code(for installation on local host, not required for docker container):
 
 ```shell
-git clone https://github.com/Livox-SDK/livox_ros_driver2.git ws_livox/src/livox_ros_driver2
+git clone https://github.com/Livox-SDK/livox_ros_driver2.git <your_workspace>/src/livox_ros_driver2
 ```
 
   **Note :**
@@ -56,45 +45,45 @@ git clone https://github.com/Livox-SDK/livox_ros_driver2.git ws_livox/src/livox_
 
 ### 2.3 Build the Livox ROS Driver 2:
 
-#### For ROS (take Noetic as an example):
-```shell
-source /opt/ros/noetic/setup.sh
-./build.sh ROS1
+#### 2.3.1 For building the livox ros driver 2 on local host
+```bash
+colcon build --packages-select livox_ros_driver2
 ```
 
-#### For ROS2 Foxy:
-```shell
-source /opt/ros/foxy/setup.sh
-./build.sh ROS2
+#### 2.3.2 For building the livox ros2 driver 2 inside the docker container
+1. Start the docker container using following command:
+```bash
+cd ${ISAAC_ROS_WS}/src/isaac_ros_common
+./scripts/run_dev.sh -i ros2_humble.realsense.livox.additions
 ```
 
-#### For ROS2 Humble:
-```shell
-source /opt/ros/humble/setup.sh
-./build.sh humble
+2. Build the entire docker container with all the packages with following command (this may take some time, about 15-20 minutes):
+```bash
+colcon build
 ```
+
+3. Alternatively, you can just build the livox repo inside docker using command:
+```bash
+colcon build --packages-select livox_ros_driver2
+```
+
+**Quick Troubleshooting:**
+
+If you get CMake error for `px4_ros2_cpp_DIR` not found:
+- Build the px4_msgs and px4_ros2_cpp with --packages-select tag first
+- Source the install/setup.bash
+- Then try building the remaining packages later using normal colcon build
 
 ### 2.4 Run Livox ROS Driver 2:
 
-#### For ROS:
-
-```shell
-source ../../devel/setup.sh
-roslaunch livox_ros_driver2 [launch file]
+#### For local host (your PC/Onboard PC like ARK Nx/AGX):
+1. Set your local host (your PC/onboard PC's) IP as required by LiDAR:
+```bash
+sudo ip addr add 192.168.1.5/24 dev enP8p1s0
 ```
+**Caution:** Change `enP8p1s0` with your port. You can see it using command `sudo ip addr show` - it should start with `en`.
 
-in which,  
-
-* **livox_ros_driver2** : is the ROS package name of Livox ROS Driver 2;
-* **[launch file]** : is the ROS launch file you want to use; the 'launch_ROS1' folder contains several launch samples for your reference;  
-
-An rviz launch example for HAP LiDAR would be:
-
-```shell
-roslaunch livox_ros_driver2 rviz_HAP.launch
-```
-
-#### For ROS2:
+2. Launch the file:
 ```shell
 source ../../install/setup.sh
 ros2 launch livox_ros_driver2 [launch file]
@@ -104,10 +93,76 @@ in which,
 
 * **[launch file]** : is the ROS2 launch file you want to use; the 'launch_ROS2' folder contains several launch samples for your reference.
 
-A rviz launch example for HAP LiDAR would be:
+A rviz launch example for MID360 LiDAR (used at Lucid Bots) to visualize the data would be:
+1. To get the livox messages as ros2 topics
+```
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
+2. To render the point cloud
+```
+ros2 launch livox_ros_driver2 rviz_MID360_launch.py
+```
+#### For Docker container
+1. Set network before starting container (on host):
+```bash
+sudo ip addr add 192.168.1.5/24 dev enP8p1s0
+```
 
-```shell
-ros2 launch livox_ros_driver2 rviz_HAP_launch.py
+2. Start the container (start two containers since we are running two launch files and need two terminals):
+```bash
+cd ${ISAAC_ROS_WS}/src/isaac_ros_common
+./scripts/run_dev.sh -i ros2_humble.realsense.livox.additions
+```
+
+3. Launch the Livox driver in terminal 1:
+```bash
+source install/setup.bash
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
+
+4. Launch RViz in terminal 2:
+```bash
+source install/setup.bash
+ros2 launch livox_ros_driver2 rviz_MID360_launch.py
+```
+**Troubleshooting Guide:**
+
+If you can run the file but don't see the point cloud being rendered, most of the time the problem is misconfiguration of IPs.
+
+The current IP of the LiDAR that you can see in MID360 config file is `192.168.1.151`.
+
+**Easy commands to debug IP misconfigurations:**
+
+1. To check the IP of the LiDAR:
+```bash
+sudo nmap -sn 192.168.1.0/24
+```
+The LiDAR IP appears as "Nmap scan report for" followed by the IP of the LiDAR. Make sure it matches with the IP in the config file since the IP in the config is what your code will be listening on.
+
+2. Try pinging the device to make sure it's alive/powered on:
+```bash
+ping 192.168.1.151
+```
+
+3. Check if data packets are coming from the LiDAR on the correct ports (these ports are specified in MID360_config.json):
+
+Terminal 1 - Monitor network traffic:
+```bash
+sudo tcpdump -i enP8p1s0 'host 192.168.1.151 and (port 56100 or port 56300 or port 56400)' -v
+```
+
+Terminal 2 - Start the msg_MID360 launch file. Once you launch the file, you should see data packets in terminal 1.
+
+If you see data in the tcpdump terminal, you should also be able to see the data on ROS2 side:
+```bash
+ros2 topic echo /livox/lidar
+```
+
+If you don't see the data, there might be a port mismatch. Check what ports the data is coming on (note: this is a rare case and should not happen since firmware is already flashed). There will be an ample amount of data packets that you will see even without launching the msg launch file. You will need to identify which new ports appear after you launch the msg launch file.
+
+To see all traffic from the LiDAR:
+```bash
+sudo tcpdump -i enP8p1s0 'host 192.168.1.151' -v
 ```
 
 ## 3. Launch file and livox_ros_driver2 internal parameter configuration instructions
